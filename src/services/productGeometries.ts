@@ -1,0 +1,527 @@
+import * as THREE from 'three';
+import { ProductId } from '../types/product';
+
+export interface ProductMeshBundle {
+  group: THREE.Group;
+  bodyMesh: THREE.Mesh;
+  frontDecalMesh?: THREE.Mesh;
+  backDecalMesh?: THREE.Mesh;
+  leftDecalMesh?: THREE.Mesh;
+  rightDecalMesh?: THREE.Mesh;
+  hoodDecalMesh?: THREE.Mesh;
+  wrapDecalMesh?: THREE.Mesh;
+  accentMeshes: THREE.Mesh[];
+}
+
+/**
+ * Creates an anatomically shaped 3D T-Shirt mesh with crewneck collar, draped body, ribbing, and conformed decals.
+ */
+export function createTShirtModel(): ProductMeshBundle {
+  const group = new THREE.Group();
+  group.name = 'TShirtProduct';
+
+  // Torso / Body geometry
+  const bodyGeo = new THREE.CylinderGeometry(0.78, 0.82, 1.6, 64, 32, true);
+  const pos = bodyGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+
+    // Anatomical chest taper
+    const depthFactor = 0.58 + 0.05 * Math.sin(y * 2.0);
+    const widthFactor = 1.0 + 0.12 * ((y + 0.8) / 1.6);
+    pos.setXYZ(i, x * widthFactor, y, z * depthFactor);
+  }
+  bodyGeo.computeVertexNormals();
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.85,
+    metalness: 0.05,
+    side: THREE.DoubleSide,
+  });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
+
+  // Ribbed Crewneck Collar
+  const collarGeo = new THREE.TorusGeometry(0.36, 0.045, 20, 64);
+  collarGeo.rotateX(Math.PI / 2);
+  collarGeo.scale(1.2, 0.8, 0.9);
+  const collarMesh = new THREE.Mesh(collarGeo, bodyMat);
+  collarMesh.position.set(0, 0.82, 0);
+  group.add(collarMesh);
+
+  // Left Sleeve with ribbed cuff
+  const leftSleeveGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.65, 32);
+  leftSleeveGeo.rotateZ(Math.PI / 3.2);
+  const leftSleeve = new THREE.Mesh(leftSleeveGeo, bodyMat);
+  leftSleeve.position.set(-0.85, 0.58, 0);
+  leftSleeve.castShadow = true;
+  group.add(leftSleeve);
+
+  // Right Sleeve with ribbed cuff
+  const rightSleeveGeo = new THREE.CylinderGeometry(0.28, 0.24, 0.65, 32);
+  rightSleeveGeo.rotateZ(-Math.PI / 3.2);
+  const rightSleeve = new THREE.Mesh(rightSleeveGeo, bodyMat);
+  rightSleeve.position.set(0.85, 0.58, 0);
+  rightSleeve.castShadow = true;
+  group.add(rightSleeve);
+
+  // Bottom Hem
+  const hemGeo = new THREE.TorusGeometry(0.82, 0.03, 16, 64);
+  hemGeo.rotateX(Math.PI / 2);
+  hemGeo.scale(1.0, 0.58, 1.0);
+  const hemMesh = new THREE.Mesh(hemGeo, bodyMat);
+  hemMesh.position.set(0, -0.8, 0);
+  group.add(hemMesh);
+
+  // --- Front Artwork Conformed Decal ---
+  // Subdivided 32x32 mesh that exactly hugs the chest curvature
+  const frontPlaneGeo = new THREE.PlaneGeometry(0.72, 0.86, 32, 32);
+  const frontPos = frontPlaneGeo.attributes.position;
+  for (let i = 0; i < frontPos.count; i++) {
+    const x = frontPos.getX(i);
+    const y = frontPos.getY(i);
+    // Cylindrical chest contour + subtle pectoral bulge
+    const curve = Math.cos((x / 0.72) * Math.PI * 0.5) * 0.038 - y * y * 0.01;
+    frontPos.setZ(i, curve);
+  }
+  frontPlaneGeo.computeVertexNormals();
+
+  const frontDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, frontDecalMat);
+  frontDecalMesh.position.set(0, 0.05, 0.468);
+  group.add(frontDecalMesh);
+
+  // --- Back Artwork Conformed Decal ---
+  const backPlaneGeo = new THREE.PlaneGeometry(0.72, 0.92, 32, 32);
+  const backPos = backPlaneGeo.attributes.position;
+  for (let i = 0; i < backPos.count; i++) {
+    const x = backPos.getX(i);
+    const curve = Math.cos((x / 0.72) * Math.PI * 0.5) * 0.036;
+    backPos.setZ(i, -curve);
+  }
+  backPlaneGeo.computeVertexNormals();
+  backPlaneGeo.rotateY(Math.PI);
+
+  const backDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const backDecalMesh = new THREE.Mesh(backPlaneGeo, backDecalMat);
+  backDecalMesh.position.set(0, 0.05, -0.468);
+  group.add(backDecalMesh);
+
+  // --- Left Sleeve Decal (Curved around cylinder) ---
+  const leftDecalGeo = new THREE.CylinderGeometry(0.285, 0.285, 0.24, 32, 1, true, Math.PI / 2 - 0.4, 0.8);
+  leftDecalGeo.rotateZ(Math.PI / 3.2);
+  const leftDecalMesh = new THREE.Mesh(leftDecalGeo, frontDecalMat.clone());
+  leftDecalMesh.position.set(-0.85, 0.58, 0);
+  group.add(leftDecalMesh);
+
+  // --- Right Sleeve Decal ---
+  const rightDecalGeo = new THREE.CylinderGeometry(0.285, 0.285, 0.24, 32, 1, true, -Math.PI / 2 - 0.4, 0.8);
+  rightDecalGeo.rotateZ(-Math.PI / 3.2);
+  const rightDecalMesh = new THREE.Mesh(rightDecalGeo, frontDecalMat.clone());
+  rightDecalMesh.position.set(0.85, 0.58, 0);
+  group.add(rightDecalMesh);
+
+  return {
+    group,
+    bodyMesh,
+    frontDecalMesh,
+    backDecalMesh,
+    leftDecalMesh,
+    rightDecalMesh,
+    accentMeshes: [collarMesh, leftSleeve, rightSleeve, hemMesh],
+  };
+}
+
+/**
+ * Creates an Oversized Streetwear Hoodie 3D model with hood, kangaroo pocket, and conformed decals.
+ */
+export function createHoodieModel(): ProductMeshBundle {
+  const group = new THREE.Group();
+  group.name = 'HoodieProduct';
+
+  const bodyGeo = new THREE.CylinderGeometry(0.88, 0.92, 1.7, 64, 32, true);
+  const pos = bodyGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const depthFactor = 0.62;
+    const widthFactor = 1.05 + 0.1 * ((y + 0.85) / 1.7);
+    pos.setXYZ(i, x * widthFactor, y, z * depthFactor);
+  }
+  bodyGeo.computeVertexNormals();
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.92,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
+
+  // Kangaroo Front Pocket
+  const pocketGeo = new THREE.BoxGeometry(0.72, 0.38, 0.08);
+  const pocket = new THREE.Mesh(pocketGeo, bodyMat);
+  pocket.position.set(0, -0.42, 0.54);
+  pocket.castShadow = true;
+  group.add(pocket);
+
+  // Dropped Shoulders & Long Sleeves
+  const leftSleeveGeo = new THREE.CylinderGeometry(0.3, 0.22, 0.82, 32);
+  leftSleeveGeo.rotateZ(Math.PI / 3.4);
+  const leftSleeve = new THREE.Mesh(leftSleeveGeo, bodyMat);
+  leftSleeve.position.set(-0.95, 0.48, 0);
+  group.add(leftSleeve);
+
+  const rightSleeveGeo = new THREE.CylinderGeometry(0.22, 0.3, 0.82, 32);
+  rightSleeveGeo.rotateZ(-Math.PI / 3.4);
+  const rightSleeve = new THREE.Mesh(rightSleeveGeo, bodyMat);
+  rightSleeve.position.set(0.95, 0.48, 0);
+  group.add(rightSleeve);
+
+  // Hood Structure
+  const hoodGeo = new THREE.SphereGeometry(0.48, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.75);
+  hoodGeo.scale(0.85, 1.1, 0.95);
+  const hood = new THREE.Mesh(hoodGeo, bodyMat);
+  hood.position.set(0, 0.98, -0.08);
+  hood.castShadow = true;
+  group.add(hood);
+
+  // Drawstrings
+  const stringGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.5, 12);
+  const stringMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.6 });
+  const stringL = new THREE.Mesh(stringGeo, stringMat);
+  stringL.position.set(-0.12, 0.62, 0.55);
+  const stringR = new THREE.Mesh(stringGeo, stringMat);
+  stringR.position.set(0.12, 0.62, 0.55);
+  group.add(stringL);
+  group.add(stringR);
+
+  // Ribbed Hem
+  const hemGeo = new THREE.CylinderGeometry(0.88, 0.88, 0.12, 48);
+  hemGeo.scale(1.0, 1.0, 0.62);
+  const hemMesh = new THREE.Mesh(hemGeo, bodyMat);
+  hemMesh.position.set(0, -0.85, 0);
+  group.add(hemMesh);
+
+  // Front Decal
+  const frontPlaneGeo = new THREE.PlaneGeometry(0.68, 0.72, 32, 32);
+  const frontPos = frontPlaneGeo.attributes.position;
+  for (let i = 0; i < frontPos.count; i++) {
+    const x = frontPos.getX(i);
+    const curve = Math.cos((x / 0.68) * Math.PI * 0.5) * 0.042;
+    frontPos.setZ(i, curve);
+  }
+  frontPlaneGeo.computeVertexNormals();
+
+  const frontDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, frontDecalMat);
+  frontDecalMesh.position.set(0, 0.22, 0.555);
+  group.add(frontDecalMesh);
+
+  // Back Decal
+  const backPlaneGeo = new THREE.PlaneGeometry(0.76, 0.92, 32, 32);
+  backPlaneGeo.rotateY(Math.PI);
+  const backDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const backDecalMesh = new THREE.Mesh(backPlaneGeo, backDecalMat);
+  backDecalMesh.position.set(0, 0.1, -0.565);
+  group.add(backDecalMesh);
+
+  return {
+    group,
+    bodyMesh,
+    frontDecalMesh,
+    backDecalMesh,
+    accentMeshes: [pocket, leftSleeve, rightSleeve, hood, hemMesh],
+  };
+}
+
+/**
+ * Creates a Ceramic Studio Mug 3D model with smooth cylindrical wrap and C-Handle.
+ */
+export function createMugModel(): ProductMeshBundle {
+  const group = new THREE.Group();
+  group.name = 'MugProduct';
+
+  const outerRadius = 0.55;
+  const innerRadius = 0.50;
+  const height = 1.15;
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.18,
+    metalness: 0.05,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.1,
+    side: THREE.DoubleSide,
+  });
+
+  const points: THREE.Vector2[] = [];
+  points.push(new THREE.Vector2(0, -height / 2));
+  points.push(new THREE.Vector2(outerRadius, -height / 2));
+  points.push(new THREE.Vector2(outerRadius, height / 2));
+  points.push(new THREE.Vector2(innerRadius, height / 2));
+  points.push(new THREE.Vector2(innerRadius, -height / 2 + 0.08));
+  points.push(new THREE.Vector2(0, -height / 2 + 0.08));
+
+  const latheGeo = new THREE.LatheGeometry(points, 64);
+  const bodyMesh = new THREE.Mesh(latheGeo, bodyMat);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
+
+  const handleGeo = new THREE.TorusGeometry(0.36, 0.065, 24, 48, Math.PI * 0.95);
+  handleGeo.rotateZ(Math.PI / 2);
+  const handle = new THREE.Mesh(handleGeo, bodyMat);
+  handle.position.set(0.68, 0, 0);
+  handle.castShadow = true;
+  group.add(handle);
+
+  const wrapArc = Math.PI * 1.55;
+  const wrapGeo = new THREE.CylinderGeometry(
+    outerRadius + 0.003,
+    outerRadius + 0.003,
+    0.92,
+    64,
+    1,
+    true,
+    Math.PI / 2 - wrapArc / 2,
+    wrapArc
+  );
+
+  const wrapDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const wrapDecalMesh = new THREE.Mesh(wrapGeo, wrapDecalMat);
+  wrapDecalMesh.position.set(0, 0, 0);
+  group.add(wrapDecalMesh);
+
+  const frontPlaneGeo = new THREE.PlaneGeometry(0.55, 0.55, 32, 16);
+  const fPos = frontPlaneGeo.attributes.position;
+  for (let i = 0; i < fPos.count; i++) {
+    const x = fPos.getX(i);
+    const curve = Math.cos((x / 0.55) * Math.PI * 0.5) * 0.052;
+    fPos.setZ(i, curve);
+  }
+  frontPlaneGeo.computeVertexNormals();
+
+  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, wrapDecalMat.clone());
+  frontDecalMesh.position.set(0, 0, outerRadius + 0.006);
+  group.add(frontDecalMesh);
+
+  return {
+    group,
+    bodyMesh,
+    wrapDecalMesh,
+    frontDecalMesh,
+    accentMeshes: [handle],
+  };
+}
+
+/**
+ * Creates a Heavyweight Canvas Tote Bag 3D model with straps and side gussets.
+ */
+export function createToteBagModel(): ProductMeshBundle {
+  const group = new THREE.Group();
+  group.name = 'ToteBagProduct';
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.95,
+    metalness: 0.0,
+    side: THREE.DoubleSide,
+  });
+
+  const bodyGeo = new THREE.BoxGeometry(1.2, 1.4, 0.32, 32, 32, 8);
+  const pos = bodyGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    if (y < 0) {
+      pos.setZ(i, z * 1.15);
+    }
+  }
+  bodyGeo.computeVertexNormals();
+
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.position.set(0, -0.3, 0);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
+
+  const strapPathL = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.32, 0.4, 0.16),
+    new THREE.Vector3(-0.35, 1.3, 0.08),
+    new THREE.Vector3(-0.32, 0.4, -0.16),
+  ]);
+  const strapGeoL = new THREE.TubeGeometry(strapPathL, 32, 0.025, 8, false);
+  const strapL = new THREE.Mesh(strapGeoL, bodyMat);
+  group.add(strapL);
+
+  const strapPathR = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.32, 0.4, 0.16),
+    new THREE.Vector3(0.35, 1.3, 0.08),
+    new THREE.Vector3(0.32, 0.4, -0.16),
+  ]);
+  const strapGeoR = new THREE.TubeGeometry(strapPathR, 32, 0.025, 8, false);
+  const strapR = new THREE.Mesh(strapGeoR, bodyMat);
+  group.add(strapR);
+
+  const frontPlaneGeo = new THREE.PlaneGeometry(0.9, 1.05);
+  const frontDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, frontDecalMat);
+  frontDecalMesh.position.set(0, -0.3, 0.166);
+  group.add(frontDecalMesh);
+
+  const backPlaneGeo = new THREE.PlaneGeometry(0.9, 1.05);
+  backPlaneGeo.rotateY(Math.PI);
+  const backDecalMesh = new THREE.Mesh(backPlaneGeo, frontDecalMat.clone());
+  backDecalMesh.position.set(0, -0.3, -0.166);
+  group.add(backDecalMesh);
+
+  return {
+    group,
+    bodyMesh,
+    frontDecalMesh,
+    backDecalMesh,
+    accentMeshes: [strapL, strapR],
+  };
+}
+
+/**
+ * Creates an Unstructured 6-Panel Dad Cap 3D model with curved brim and top button.
+ */
+export function createCapModel(): ProductMeshBundle {
+  const group = new THREE.Group();
+  group.name = 'CapProduct';
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    roughness: 0.88,
+    metalness: 0.04,
+    side: THREE.DoubleSide,
+  });
+
+  const crownGeo = new THREE.SphereGeometry(0.72, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.52);
+  crownGeo.scale(1.0, 0.82, 1.08);
+  const bodyMesh = new THREE.Mesh(crownGeo, bodyMat);
+  bodyMesh.position.set(0, 0, 0);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  group.add(bodyMesh);
+
+  const visorShape = new THREE.Shape();
+  visorShape.moveTo(-0.55, 0);
+  visorShape.quadraticCurveTo(0, 0.85, 0.55, 0);
+  visorShape.quadraticCurveTo(0, 0.25, -0.55, 0);
+
+  const extrudeSettings = { depth: 0.025, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.01, bevelThickness: 0.01 };
+  const visorGeo = new THREE.ExtrudeGeometry(visorShape, extrudeSettings);
+  visorGeo.rotateX(Math.PI / 2 - 0.22);
+  const visor = new THREE.Mesh(visorGeo, bodyMat);
+  visor.position.set(0, -0.05, 0.58);
+  visor.castShadow = true;
+  group.add(visor);
+
+  const buttonGeo = new THREE.SphereGeometry(0.045, 16, 16);
+  const button = new THREE.Mesh(buttonGeo, bodyMat);
+  button.position.set(0, 0.59, 0);
+  group.add(button);
+
+  // Subdivided curved crown decal
+  const frontPlaneGeo = new THREE.PlaneGeometry(0.52, 0.32, 32, 16);
+  const fPos = frontPlaneGeo.attributes.position;
+  for (let i = 0; i < fPos.count; i++) {
+    const x = fPos.getX(i);
+    const y = fPos.getY(i);
+    const curve = Math.cos((x / 0.52) * Math.PI * 0.5) * 0.082 - y * 0.082;
+    fPos.setZ(i, curve);
+  }
+  frontPlaneGeo.computeVertexNormals();
+
+  const frontDecalMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+    side: THREE.DoubleSide,
+  });
+  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, frontDecalMat);
+  frontDecalMesh.position.set(0, 0.18, 0.686);
+  group.add(frontDecalMesh);
+
+  return {
+    group,
+    bodyMesh,
+    frontDecalMesh,
+    accentMeshes: [visor, button],
+  };
+}
+
+export function buildProductMeshBundle(productId: ProductId | string): ProductMeshBundle {
+  switch (productId) {
+    case 'tshirt':
+      return createTShirtModel();
+    case 'hoodie':
+      return createHoodieModel();
+    case 'mug':
+      return createMugModel();
+    case 'totebag':
+      return createToteBagModel();
+    case 'cap':
+      return createCapModel();
+    default:
+      return createTShirtModel();
+  }
+}
