@@ -25,6 +25,7 @@ interface LayerPanelProps {
 
 export const LayerPanel: React.FC<LayerPanelProps> = ({ isOpen, onToggle }) => {
   const activeFabricCanvas = useStudioStore((s) => s.activeFabricCanvas);
+  const canvasVersion = useStudioStore((s) => s.canvasVersion);
   const activeZoneId = useStudioStore((s) => s.activeZoneId);
   const updateZoneCanvas = useStudioStore((s) => s.updateZoneCanvas);
 

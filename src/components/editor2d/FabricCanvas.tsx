@@ -16,6 +16,7 @@ export const FabricCanvas: React.FC = () => {
   const updateZoneCanvas = useStudioStore((s) => s.updateZoneCanvas);
   const setActiveObjectProps = useStudioStore((s) => s.setActiveObjectProps);
   const setFabricCanvas = useStudioStore((s) => s.setFabricCanvas);
+  const incrementCanvasVersion = useStudioStore((s) => s.incrementCanvasVersion);
   const undo = useStudioStore((s) => s.undo);
   const redo = useStudioStore((s) => s.redo);
 
@@ -60,10 +61,12 @@ export const FabricCanvas: React.FC = () => {
       canvas.loadFromJSON(zoneJson, () => {
         canvas.renderAll();
         textureBaker.updateFromLiveCanvas(activeZoneId, canvas, true);
+        incrementCanvasVersion();
       });
     } else {
       canvas.clear();
       textureBaker.updateFromLiveCanvas(activeZoneId, canvas, true);
+      incrementCanvasVersion();
     }
 
     const syncTo3D = () => {
@@ -149,8 +152,14 @@ export const FabricCanvas: React.FC = () => {
       commitChange();
     });
 
-    canvas.on('object:added', syncTo3D);
-    canvas.on('object:removed', commitChange);
+    canvas.on('object:added', () => {
+      syncTo3D();
+      incrementCanvasVersion();
+    });
+    canvas.on('object:removed', () => {
+      commitChange();
+      incrementCanvasVersion();
+    });
 
     canvas.on('selection:created', updateSelectionProps);
     canvas.on('selection:updated', updateSelectionProps);

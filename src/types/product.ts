@@ -50,23 +50,23 @@ export interface CustomProductRecord extends ProductConfig {
 export const PRODUCT_CATALOG: Record<ProductId, ProductConfig> = {
   tshirt: {
     id: 'tshirt',
-    name: 'Crewneck T-Shirt',
+    name: 'Oversized Heavy Tee',
     subtitle: 'Heavyweight 240 GSM Combed Cotton',
     category: 'Apparel',
-    defaultColor: '#1e212d',
+    defaultColor: '#f4f4f6',
     colorPalette: [
-      '#1e212d', // Vintage Noir
-      '#f3f4f6', // Optic White
-      '#3b82f6', // Cobalt Royal
-      '#ef4444', // Crimson
-      '#10b981', // Emerald
-      '#f59e0b', // Amber Ochre
-      '#8b5cf6', // Deep Violet
-      '#475569', // Slate Heather
-      '#3f3f46', // Charcoal
-      '#ec4899', // Hyper Pink
-      '#14b8a6', // Persian Teal
-      '#d97706', // Terracotta
+      '#f4f4f6', // Studio Bone White (Default)
+      '#e2e8f0', // Heather Ash
+      '#1e212d', // Heavy Charcoal Noir
+      '#0f172a', // Washed Midnight
+      '#2d3748', // Mineral Slate
+      '#3b82f6', // Royal Cobalt
+      '#10b981', // Sage Emerald
+      '#f59e0b', // Vintage Ochre
+      '#ef4444', // Crimson Washed
+      '#8b5cf6', // Lilac Violet
+      '#78350f', // Warm Amber
+      '#047857', // Forest Pine
     ],
     defaultMaterial: {
       roughness: 0.85,

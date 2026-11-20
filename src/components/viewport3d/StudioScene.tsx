@@ -75,11 +75,11 @@ const StudioLighting: React.FC = () => {
 
   return (
     <>
-      <ambientLight intensity={ambientInt * 0.75} />
-      {/* Key Soft Light */}
+      <ambientLight intensity={ambientInt * 0.8} />
+      {/* Key Softbox Light */}
       <directionalLight
         position={[3.5, 4.5, 3.5]}
-        intensity={1.4}
+        intensity={1.5}
         color={keyColor}
         castShadow
         shadow-mapSize-width={2048}
@@ -89,14 +89,25 @@ const StudioLighting: React.FC = () => {
       {/* Fill Diffuse Light */}
       <directionalLight
         position={[-3.5, 2.0, 2.0]}
-        intensity={0.8}
+        intensity={0.9}
         color={fillColor}
       />
-      {/* Rim / Hair Backlight for edge separation */}
+      {/* Bilateral Rim Lighting for Silhouette Edge Definition */}
       <directionalLight
-        position={[0, 4.0, -4.0]}
-        intensity={1.2}
+        position={[3.8, 2.8, -3.2]}
+        intensity={1.1}
         color={rimColor}
+      />
+      <directionalLight
+        position={[-3.8, 2.8, -3.2]}
+        intensity={1.1}
+        color={rimColor}
+      />
+      {/* Overhead Soft Accent */}
+      <directionalLight
+        position={[0, 4.5, 0.5]}
+        intensity={0.4}
+        color="#ffffff"
       />
     </>
   );
@@ -122,19 +133,18 @@ export const StudioScene: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-full bg-radial-gradient from-studio-850 to-studio-950 overflow-hidden flex flex-col">
-      {/* Floating 3D Control Bar */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1 bg-studio-900/90 backdrop-blur-md p-1 rounded-xl border border-studio-750 shadow-xl max-w-[calc(100%-140px)]">
-        <span className="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+    <div className="relative w-full h-full bg-gradient-to-b from-[#181a22] via-[#121319] to-[#0c0d12] overflow-hidden flex flex-col">
+      {/* Floating Camera Angle Dock (Centered at Bottom) */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 bg-studio-900/90 backdrop-blur-md px-2 py-1.5 rounded-full border border-studio-750 shadow-2xl">
+        <span className="pl-2 pr-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
           <Eye className="w-3.5 h-3.5 text-indigo-400" />
-          Camera
         </span>
-        <div className="h-4 w-px bg-studio-700 mx-0.5" />
+        <div className="h-3.5 w-px bg-studio-700 mx-1" />
         {activeProduct.zones.map((zone) => (
           <button
             key={zone.id}
             onClick={() => setActiveZone(zone.id)}
-            className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+            className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
               activeZoneId === zone.id
                 ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
                 : 'text-slate-300 hover:text-white hover:bg-studio-800'

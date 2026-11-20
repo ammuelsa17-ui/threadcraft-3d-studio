@@ -27,6 +27,7 @@ const ENVIRONMENT_PRESETS = [
 ];
 
 export const MaterialPanel: React.FC = () => {
+  const [showAdvancedPhysics, setShowAdvancedPhysics] = React.useState(false);
   const activeProduct = useStudioStore((s) => s.activeProduct);
   const garmentColor = useStudioStore((s) => s.garmentColor);
   const setGarmentColor = useStudioStore((s) => s.setGarmentColor);
@@ -130,71 +131,88 @@ export const MaterialPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. PBR Sliders */}
-        <div className="space-y-4 pt-2 border-t border-studio-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-300">Surface Roughness</span>
-            <span className="font-mono text-xs text-indigo-400">
-              {materialSettings.roughness.toFixed(2)}
+        {/* 3. Advanced PBR Sliders (Collapsible) */}
+        <div className="pt-2 border-t border-studio-800">
+          <button
+            onClick={() => setShowAdvancedPhysics(!showAdvancedPhysics)}
+            className="flex items-center justify-between w-full py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Fine-Tune Shader Physics</span>
             </span>
-          </div>
-          <input
-            type="range"
-            min={0.05}
-            max={1.0}
-            step={0.01}
-            value={materialSettings.roughness}
-            onChange={(e) => updateMaterialSettings({ roughness: parseFloat(e.target.value) })}
-            className="w-full accent-indigo-500 cursor-pointer"
-          />
+            <span className="text-[11px] font-mono text-slate-400">
+              {showAdvancedPhysics ? '▲ Hide' : '▼ Adjust'}
+            </span>
+          </button>
 
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-semibold text-slate-300">Metallic / Specular</span>
-            <span className="font-mono text-xs text-indigo-400">
-              {materialSettings.metalness.toFixed(2)}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0.0}
-            max={1.0}
-            step={0.01}
-            value={materialSettings.metalness}
-            onChange={(e) => updateMaterialSettings({ metalness: parseFloat(e.target.value) })}
-            className="w-full accent-indigo-500 cursor-pointer"
-          />
+          {showAdvancedPhysics && (
+            <div className="space-y-4 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300">Surface Roughness</span>
+                <span className="font-mono text-xs text-indigo-400">
+                  {materialSettings.roughness.toFixed(2)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.05}
+                max={1.0}
+                step={0.01}
+                value={materialSettings.roughness}
+                onChange={(e) => updateMaterialSettings({ roughness: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
 
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-semibold text-slate-300">Weave Normal Depth</span>
-            <span className="font-mono text-xs text-indigo-400">
-              {materialSettings.normalScale.toFixed(2)}×
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0.0}
-            max={3.0}
-            step={0.1}
-            value={materialSettings.normalScale}
-            onChange={(e) => updateMaterialSettings({ normalScale: parseFloat(e.target.value) })}
-            className="w-full accent-indigo-500 cursor-pointer"
-          />
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-slate-300">Metallic / Specular</span>
+                <span className="font-mono text-xs text-indigo-400">
+                  {materialSettings.metalness.toFixed(2)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.0}
+                max={1.0}
+                step={0.01}
+                value={materialSettings.metalness}
+                onChange={(e) => updateMaterialSettings({ metalness: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
 
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-semibold text-slate-300">Clearcoat Glaze</span>
-            <span className="font-mono text-xs text-indigo-400">
-              {materialSettings.clearcoat.toFixed(2)}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0.0}
-            max={1.0}
-            step={0.05}
-            value={materialSettings.clearcoat}
-            onChange={(e) => updateMaterialSettings({ clearcoat: parseFloat(e.target.value) })}
-            className="w-full accent-indigo-500 cursor-pointer"
-          />
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-slate-300">Weave Normal Depth</span>
+                <span className="font-mono text-xs text-indigo-400">
+                  {materialSettings.normalScale.toFixed(2)}×
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.0}
+                max={3.0}
+                step={0.1}
+                value={materialSettings.normalScale}
+                onChange={(e) => updateMaterialSettings({ normalScale: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-slate-300">Clearcoat Glaze</span>
+                <span className="font-mono text-xs text-indigo-400">
+                  {materialSettings.clearcoat.toFixed(2)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.0}
+                max={1.0}
+                step={0.05}
+                value={materialSettings.clearcoat}
+                onChange={(e) => updateMaterialSettings({ clearcoat: parseFloat(e.target.value) })}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+            </div>
+          )}
         </div>
 
         {/* 4. Studio Environment Lighting */}

@@ -27,10 +27,10 @@ export async function ensureInitialTemplates(): Promise<void> {
 
   const sampleTShirt: ProjectRecord = {
     id: 'sample-tee-monolith',
-    name: 'Monolith Architectural Heavy Tee',
+    name: 'Studio Specimen Heavy Oversized Tee',
     thumbnail: '',
     productType: 'tshirt',
-    garmentColor: '#1e212d',
+    garmentColor: '#f4f4f6',
     materialSettings: PRODUCT_CATALOG.tshirt.defaultMaterial,
     canvases: {
       front: JSON.stringify({
@@ -45,7 +45,7 @@ export async function ensureInitialTemplates(): Promise<void> {
             top: 420,
             width: 580,
             height: 110,
-            fill: '#ffffff',
+            fill: '#0f172a',
             stroke: null,
             strokeWidth: 1,
             scaleX: 1,

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ProductId } from '../types/product';
+import { buildRealisticTeeGeometry } from './sculptedTeeGeometry';
 
 export interface ProductMeshBundle {
   group: THREE.Group;
@@ -20,76 +21,48 @@ export function createTShirtModel(): ProductMeshBundle {
   const group = new THREE.Group();
   group.name = 'TShirtProduct';
 
-  // Torso / Body geometry
-  const bodyGeo = new THREE.CylinderGeometry(0.78, 0.82, 1.6, 64, 32, true);
-  const pos = bodyGeo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-
-    // Anatomical chest taper
-    const depthFactor = 0.58 + 0.05 * Math.sin(y * 2.0);
-    const widthFactor = 1.0 + 0.12 * ((y + 0.8) / 1.6);
-    pos.setXYZ(i, x * widthFactor, y, z * depthFactor);
-  }
-  bodyGeo.computeVertexNormals();
+  const {
+    bodyGeo,
+    collarGeo,
+    leftSleeveGeo,
+    rightSleeveGeo,
+    hemGeo,
+    frontDecalGeo,
+    backDecalGeo,
+  } = buildRealisticTeeGeometry();
 
   const bodyMat = new THREE.MeshPhysicalMaterial({
     roughness: 0.85,
     metalness: 0.05,
     side: THREE.DoubleSide,
   });
+
+  // Torso / Body mesh with realistic drape & organic folds
   const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
   bodyMesh.castShadow = true;
   bodyMesh.receiveShadow = true;
   group.add(bodyMesh);
 
   // Ribbed Crewneck Collar
-  const collarGeo = new THREE.TorusGeometry(0.36, 0.045, 20, 64);
-  collarGeo.rotateX(Math.PI / 2);
-  collarGeo.scale(1.2, 0.8, 0.9);
   const collarMesh = new THREE.Mesh(collarGeo, bodyMat);
-  collarMesh.position.set(0, 0.82, 0);
+  collarMesh.position.set(0, 0.75, 0.02);
+  collarMesh.rotation.x = Math.PI * 0.06;
+  collarMesh.castShadow = true;
   group.add(collarMesh);
 
-  // Left Sleeve with ribbed cuff
-  const leftSleeveGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.65, 32);
-  leftSleeveGeo.rotateZ(Math.PI / 3.2);
+  // Draped Left Sleeve
   const leftSleeve = new THREE.Mesh(leftSleeveGeo, bodyMat);
-  leftSleeve.position.set(-0.85, 0.58, 0);
+  leftSleeve.position.set(-0.96, 0.44, 0.02);
   leftSleeve.castShadow = true;
   group.add(leftSleeve);
 
-  // Right Sleeve with ribbed cuff
-  const rightSleeveGeo = new THREE.CylinderGeometry(0.28, 0.24, 0.65, 32);
-  rightSleeveGeo.rotateZ(-Math.PI / 3.2);
+  // Draped Right Sleeve
   const rightSleeve = new THREE.Mesh(rightSleeveGeo, bodyMat);
-  rightSleeve.position.set(0.85, 0.58, 0);
+  rightSleeve.position.set(0.96, 0.44, 0.02);
   rightSleeve.castShadow = true;
   group.add(rightSleeve);
 
-  // Bottom Hem
-  const hemGeo = new THREE.TorusGeometry(0.82, 0.03, 16, 64);
-  hemGeo.rotateX(Math.PI / 2);
-  hemGeo.scale(1.0, 0.58, 1.0);
-  const hemMesh = new THREE.Mesh(hemGeo, bodyMat);
-  hemMesh.position.set(0, -0.8, 0);
-  group.add(hemMesh);
-
-  // --- Front Artwork Conformed Decal ---
-  // Subdivided 32x32 mesh that exactly hugs the chest curvature
-  const frontPlaneGeo = new THREE.PlaneGeometry(0.72, 0.86, 32, 32);
-  const frontPos = frontPlaneGeo.attributes.position;
-  for (let i = 0; i < frontPos.count; i++) {
-    const x = frontPos.getX(i);
-    const y = frontPos.getY(i);
-    // Cylindrical chest contour + subtle pectoral bulge
-    const curve = Math.cos((x / 0.72) * Math.PI * 0.5) * 0.038 - y * y * 0.01;
-    frontPos.setZ(i, curve);
-  }
-  frontPlaneGeo.computeVertexNormals();
-
+  // Conformed Front Artwork Decal
   const frontDecalMat = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 1,
@@ -99,21 +72,11 @@ export function createTShirtModel(): ProductMeshBundle {
     polygonOffsetUnits: -3,
     side: THREE.DoubleSide,
   });
-  const frontDecalMesh = new THREE.Mesh(frontPlaneGeo, frontDecalMat);
-  frontDecalMesh.position.set(0, 0.05, 0.468);
+  const frontDecalMesh = new THREE.Mesh(frontDecalGeo, frontDecalMat);
+  frontDecalMesh.position.set(0, 0.02, 0.33);
   group.add(frontDecalMesh);
 
-  // --- Back Artwork Conformed Decal ---
-  const backPlaneGeo = new THREE.PlaneGeometry(0.72, 0.92, 32, 32);
-  const backPos = backPlaneGeo.attributes.position;
-  for (let i = 0; i < backPos.count; i++) {
-    const x = backPos.getX(i);
-    const curve = Math.cos((x / 0.72) * Math.PI * 0.5) * 0.036;
-    backPos.setZ(i, -curve);
-  }
-  backPlaneGeo.computeVertexNormals();
-  backPlaneGeo.rotateY(Math.PI);
-
+  // Conformed Back Artwork Decal
   const backDecalMat = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 1,
@@ -123,22 +86,24 @@ export function createTShirtModel(): ProductMeshBundle {
     polygonOffsetUnits: -3,
     side: THREE.DoubleSide,
   });
-  const backDecalMesh = new THREE.Mesh(backPlaneGeo, backDecalMat);
-  backDecalMesh.position.set(0, 0.05, -0.468);
+  const backDecalMesh = new THREE.Mesh(backDecalGeo, backDecalMat);
+  backDecalMesh.position.set(0, 0.05, -0.33);
   group.add(backDecalMesh);
 
-  // --- Left Sleeve Decal (Curved around cylinder) ---
-  const leftDecalGeo = new THREE.CylinderGeometry(0.285, 0.285, 0.24, 32, 1, true, Math.PI / 2 - 0.4, 0.8);
-  leftDecalGeo.rotateZ(Math.PI / 3.2);
+  // Left Sleeve Decal (Conformed around sleeve curve)
+  const leftDecalGeo = new THREE.CylinderGeometry(0.29, 0.29, 0.22, 32, 1, true, Math.PI / 2 - 0.4, 0.8);
+  leftDecalGeo.rotateZ(-Math.PI * 0.18);
+  leftDecalGeo.rotateY(0.10);
   const leftDecalMesh = new THREE.Mesh(leftDecalGeo, frontDecalMat.clone());
-  leftDecalMesh.position.set(-0.85, 0.58, 0);
+  leftDecalMesh.position.set(-0.96, 0.44, 0.02);
   group.add(leftDecalMesh);
 
-  // --- Right Sleeve Decal ---
-  const rightDecalGeo = new THREE.CylinderGeometry(0.285, 0.285, 0.24, 32, 1, true, -Math.PI / 2 - 0.4, 0.8);
-  rightDecalGeo.rotateZ(-Math.PI / 3.2);
+  // Right Sleeve Decal
+  const rightDecalGeo = new THREE.CylinderGeometry(0.29, 0.29, 0.22, 32, 1, true, -Math.PI / 2 - 0.4, 0.8);
+  rightDecalGeo.rotateZ(Math.PI * 0.18);
+  rightDecalGeo.rotateY(-0.10);
   const rightDecalMesh = new THREE.Mesh(rightDecalGeo, frontDecalMat.clone());
-  rightDecalMesh.position.set(0.85, 0.58, 0);
+  rightDecalMesh.position.set(0.96, 0.44, 0.02);
   group.add(rightDecalMesh);
 
   return {
@@ -148,7 +113,7 @@ export function createTShirtModel(): ProductMeshBundle {
     backDecalMesh,
     leftDecalMesh,
     rightDecalMesh,
-    accentMeshes: [collarMesh, leftSleeve, rightSleeve, hemMesh],
+    accentMeshes: [collarMesh, leftSleeve, rightSleeve],
   };
 }
 

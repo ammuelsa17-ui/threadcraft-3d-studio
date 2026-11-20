@@ -34,6 +34,7 @@ interface StudioState {
   materialSettings: MaterialSettings;
   canvases: Record<string, string>;
   activeFabricCanvas: fabric.Canvas | null;
+  canvasVersion: number;
 
   // Selection
   activeObjectProps: ActiveObjectProps | null;
@@ -54,6 +55,7 @@ interface StudioState {
 
   // Actions
   setFabricCanvas: (canvas: fabric.Canvas | null) => void;
+  incrementCanvasVersion: () => void;
   setProjectName: (name: string) => void;
   setProduct: (productId: ProductId | string) => void;
   setActiveZone: (zoneId: string) => void;
@@ -81,6 +83,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   materialSettings: PRODUCT_CATALOG.tshirt.defaultMaterial,
   canvases: {},
   activeFabricCanvas: null,
+  canvasVersion: 0,
   activeObjectProps: null,
 
   viewMode: 'split',
@@ -94,7 +97,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   isSaving: false,
   lastSavedAt: null,
 
-  setFabricCanvas: (canvas) => set({ activeFabricCanvas: canvas }),
+  setFabricCanvas: (canvas) => set({ activeFabricCanvas: canvas, canvasVersion: 1 }),
+  incrementCanvasVersion: () => set((s) => ({ canvasVersion: s.canvasVersion + 1 })),
 
   setProjectName: (name) => {
     set({ projectName: name });
